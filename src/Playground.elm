@@ -1,4 +1,4 @@
-module Playground exposing (main)
+module Playground exposing (doubleScores, main, scoresLessThan320)
 
 import Html
 import Regex
@@ -126,7 +126,26 @@ validateEmail email =
         ( "Invaild email", "red" )
 
 
+multiplyByFive : number -> number
+multiplyByFive number =
+    let
+        multiplier =
+            5
+    in
+    number * multiplier
+
+
+doubleScores : List number -> List number
+doubleScores scores =
+    List.map ((*) 2) scores
+
+
+scoresLessThan320 : List number -> List number
+scoresLessThan320 scores =
+    List.filter ((>) 320) scores
+
+
 main =
-    validateEmail "thedude@rubix.com"
+    multiplyByFive 5
         |> Debug.toString
         |> Html.text
