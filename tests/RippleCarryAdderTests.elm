@@ -1,34 +1,157 @@
-module RippleCarryAdderTests exposing (halfAdderTests, inverterTests)
+module RippleCarryAdderTests exposing (rippleCarryAdderFuzzTests)
 
 import Expect exposing (Expectation)
-import Fuzz exposing (Fuzzer, int, list, string)
+import Fuzz exposing (..)
 import RippleCarryAdder exposing (..)
 import Test exposing (..)
 
 
-inverterTests : Test
-inverterTests =
-    describe "Inverter"
-        [ test "output is 0 when the input is 1" <|
-            \_ ->
-                inverter 0
-                    |> Expect.equal 1
-        , test "output is 1 when the input is 0" <|
-            \_ ->
-                inverter 1
-                    |> Expect.equal 0
+rippleCarryAdderFuzzTests : Test
+rippleCarryAdderFuzzTests =
+    describe "carry-out relationship with the most significant digits"
+        [ fuzz3
+            (list (intRange 0 1))
+            (list (intRange 0 1))
+            (intRange 0 1)
+            "carry-out is 0 when most significant digits are both 0"
+          <|
+            \list1 list2 carryIn ->
+                let
+                    convertToBinnary digitsList =
+                        digitsList
+                            |> List.take 3
+                            |> numberFromDigits
+
+                    firstInput =
+                        convertToBinnary list1
+
+                    secondInput =
+                        convertToBinnary list2
+                in
+                rippleCarryAdder firstInput secondInput carryIn
+                    |> Expect.atMost 1111
+        , fuzz3
+            (list (intRange 0 1))
+            (list (intRange 0 1))
+            (intRange 0 1)
+            "carry-out is 1 when most significant digits are both 1"
+          <|
+            \list1 list2 carryIn ->
+                let
+                    convertToBinnary digitsList =
+                        digitsList
+                            |> (::) 1
+                            |> numberFromDigits
+
+                    firstInput =
+                        convertToBinnary list1
+
+                    secondInput =
+                        convertToBinnary list2
+                in
+                rippleCarryAdder firstInput secondInput carryIn
+                    |> Expect.atMost 11111
+        , fuzz3
+            (list (intRange 0 1))
+            (list (intRange 0 1))
+            (constant 0)
+            """
+            the least singnificant digit of the output is always 0
+            when the least significant digits of inputs are 0 and
+            carry-in is 0
+            """
+          <|
+            \list1 list2 carryIn ->
+                let
+                    convertToBinary digitList =
+                        digitList
+                            |> List.take 3
+                            |> List.reverse
+                            |> List.append [ 0 ]
+                            |> List.reverse
+                            |> numberFromDigits
+
+                    firstInput =
+                        convertToBinary list1
+
+                    secondInput =
+                        convertToBinary list2
+
+                    isLastDigitZero : List number -> Bool
+                    isLastDigitZero digitList =
+                        if List.length digitList == 1 then
+                            if digitList == [ 0 ] then
+                                True
+
+                            else
+                                False
+
+                        else
+                            isLastDigitZero (Maybe.withDefault [ 0 ] (List.tail digitList))
+                in
+                rippleCarryAdder firstInput secondInput carryIn
+                    |> digits
+                    |> isLastDigitZero
+                    |> Expect.equal True
+        , fuzz3
+            (list (intRange 0 1))
+            (list (intRange 0 1))
+            (constant 0)
+            """
+            the least singnificant digit of the output is always 0
+            when the least significant digits of inputs are 1 and
+            carry-in is 0
+            """
+          <|
+            \list1 list2 carryIn ->
+                let
+                    convertToBinary digitList =
+                        digitList
+                            |> List.take 3
+                            |> List.reverse
+                            |> List.append [ 1 ]
+                            |> List.reverse
+                            |> numberFromDigits
+
+                    firstInput =
+                        convertToBinary list1
+
+                    secondInput =
+                        convertToBinary list2
+
+                    isLastDigitZero : List number -> Bool
+                    isLastDigitZero digitList =
+                        if List.length digitList == 1 then
+                            if digitList == [ 0 ] then
+                                True
+
+                            else
+                                False
+
+                        else
+                            isLastDigitZero (Maybe.withDefault [ 0 ] (List.tail digitList))
+                in
+                rippleCarryAdder firstInput secondInput carryIn
+                    |> digits
+                    |> isLastDigitZero
+                    |> Expect.equal True
         ]
 
 
-halfAdderTests : Test
-halfAdderTests =
-    describe "Half adder"
-        [ test "sum and carry-out are 0 when both inputs are 0" <|
-            \_ ->
-                halfAdder 0 0
-                    |> Expect.equal { sum = 0, carry = 0 }
-        , test "sum is 0 and carry is 1 when both inputs are 1" <|
-            \_ ->
-                halfAdder 1 1
-                    |> Expect.equal { sum = 0, carry = 1 }
-        ]
+numberFromDigits : List number -> number
+numberFromDigits digitList =
+    List.foldl (\digit number -> number * 10 + digit) 0 digitList
+
+
+digits : Int -> List Int
+digits number =
+    let
+        getDigits n =
+            if n == 0 then
+                []
+
+            else
+                remainderBy 10 n :: getDigits (n // 10)
+    in
+    getDigits number
+        |> List.reverse
