@@ -119,17 +119,16 @@ rippleCarryAdderFuzzTests =
                     secondInput =
                         convertToBinary list2
 
-                    isLastDigitZero : List number -> Bool
                     isLastDigitZero digitList =
-                        if List.length digitList == 1 then
-                            if digitList == [ 0 ] then
+                        case digitList of
+                            [ 0 ] ->
                                 True
 
-                            else
+                            [ 1 ] ->
                                 False
 
-                        else
-                            isLastDigitZero (Maybe.withDefault [ 0 ] (List.tail digitList))
+                            _ ->
+                                isLastDigitZero (Maybe.withDefault [ 0 ] (List.tail digitList))
                 in
                 rippleCarryAdder firstInput secondInput carryIn
                     |> digits
