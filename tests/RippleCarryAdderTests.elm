@@ -127,8 +127,11 @@ rippleCarryAdderFuzzTests =
                             [ 1 ] ->
                                 False
 
-                            _ ->
-                                isLastDigitZero (Maybe.withDefault [ 0 ] (List.tail digitList))
+                            [] ->
+                                False
+
+                            _ :: xs ->
+                                isLastDigitZero xs
                 in
                 rippleCarryAdder firstInput secondInput carryIn
                     |> digits
