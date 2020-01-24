@@ -1,6 +1,7 @@
 module Playground exposing
     ( Greeting(..)
     , Result(..)
+    , User
     , arya
     , doubleScores
     , getAdultAge
@@ -10,6 +11,7 @@ module Playground exposing
     , sayHello
     , scoresLessThan320
     , signUp
+    , welcomeMessage
     )
 
 import Html exposing (Html, text)
@@ -263,6 +265,24 @@ list1 =
 list2 : MyList number
 list2 =
     Node 9 Empty
+
+
+type alias User =
+    { name : String
+    , email : String
+    , age : Int
+    , isLoggedIn : Bool
+    }
+
+
+welcomeMessage : { a | isLoggedIn : Bool, name : String } -> String
+welcomeMessage { isLoggedIn, name } =
+    case isLoggedIn of
+        True ->
+            "Welcome " ++ name ++ "!"
+
+        False ->
+            "Please log in."
 
 
 main : Html.Html msg
