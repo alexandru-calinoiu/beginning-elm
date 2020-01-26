@@ -4,6 +4,7 @@ import Browser
 import Html exposing (Html, button, div, h3, li, text, ul)
 import Html.Events exposing (onClick)
 import Http
+import Json.Decode exposing (Decoder, Error(..), decodeString, list, string)
 
 
 type alias Model =
@@ -69,20 +70,25 @@ buildErrorMessage httpError =
 
 type Msg
     = SendHttpRequest
-    | DataReceived (Result Http.Error String)
+    | DataReceived (Result Http.Error (List String))
 
 
 url : String
 url =
-    "http://localhost:5016/old-school.txt"
+    "http://localhost:5019/nicknames"
 
 
 getNickNames : Cmd Msg
 getNickNames =
     Http.get
         { url = url
-        , expect = Http.expectString DataReceived
+        , expect = Http.expectJson DataReceived nicknamesDecoder
         }
+
+
+nicknamesDecoder : Decoder (List String)
+nicknamesDecoder =
+    list string
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,11 +97,7 @@ update msg model =
         SendHttpRequest ->
             ( model, getNickNames )
 
-        DataReceived (Ok nicknamesStr) ->
-            let
-                nicknames =
-                    String.split "," nicknamesStr
-            in
+        DataReceived (Ok nicknames) ->
             ( { model | nicknames = nicknames }, Cmd.none )
 
         DataReceived (Err httpError) ->
