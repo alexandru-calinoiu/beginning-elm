@@ -2,26 +2,30 @@ module Page.ListPosts exposing (Model, Msg, init, update, view)
 
 import Error exposing (buildErrorMessage)
 import Html exposing (..)
-import Html.Attributes exposing (href)
+import Html.Attributes exposing (href, type_)
 import Html.Events exposing (onClick)
 import Http
-import Post exposing (Post, idToString, postsDecoder)
+import Post exposing (Post, idToString, postsDecoder, PostId)
 import RemoteData exposing (WebData)
 
 
 type alias Model =
     { posts : WebData (List Post)
+    , deleteError : Maybe String
     }
 
 
 type Msg
     = SendHttpRequest
     | DataReceived (WebData (List Post))
+    | DeletePost Post.PostId
+    | PostDeleted (Result Http.Error String)
 
 
 initialModel : Model
 initialModel =
     { posts = RemoteData.Loading
+    , deleteError = Nothing
     }
 
 
@@ -40,6 +44,19 @@ fetchPosts =
         }
 
 
+deletePost : PostId -> Cmd Msg
+deletePost postId =
+    Http.request
+    { method = "DELETE"
+    , headers = []
+    , url = "http://localhost:5019/posts/" ++ idToString postId
+    , body = Http.emptyBody
+    , expect = Http.expectString PostDeleted
+    , timeout = Nothing
+    , tracker = Nothing
+    }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -49,6 +66,15 @@ update msg model =
         DataReceived response ->
             ( { model | posts = response }, Cmd.none )
 
+        DeletePost postId ->
+            ( model, deletePost postId )
+
+        PostDeleted (Ok _) ->
+            ( { model | posts = RemoteData.Loading }, fetchPosts )
+            
+
+        PostDeleted (Err error) ->
+            ( { model | deleteError = Just (buildErrorMessage error) }, Cmd.none )
 
 
 -- VIEWS
@@ -60,6 +86,7 @@ view model =
         [ button [ onClick SendHttpRequest ]
             [ text "Refresh posts" ]
         , viewPostsOrError model
+        , viewDeleteError model.deleteError
         ]
 
 
@@ -121,4 +148,19 @@ viewPost post =
         , td [] [ text post.title ]
         , td [] [ a [ href post.authorUrl ] [ text post.authorName ] ]
         , td [] [ a [ href postPath ] [ text "Edit" ] ]
+        , td [] [ button [ type_ "button", onClick ( DeletePost post.id)]
+                    [ text "Delete" ]
+                ]
         ]
+
+
+viewDeleteError : Maybe String -> Html Msg
+viewDeleteError maybeError =
+    case maybeError of
+        Just error ->
+            div []
+                [ h3 [] [ text "Couldn't delete post at this time."]
+                , text ("Error: " ++ error)]
+
+        Nothing ->
+            text ""
